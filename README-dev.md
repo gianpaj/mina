@@ -11,10 +11,9 @@ Mina, this is the right file!
 
 ## Building Mina
 
-Building Mina can be slightly involved. There are many C library dependencies that need
-to be present in the system, as well as some OCaml-specific setup.
 Mina can be build in different ways and on different platforms. Currently, Mina
-supports Linux and MacOS.
+supports Linux and MacOS. If you encounter problems when building, feel free to
+open [an issue](https://github.com/MinaProtocol/mina/issues/new/choose).
 
 ### Building from sources
 
