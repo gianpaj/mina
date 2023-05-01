@@ -138,57 +138,12 @@ Be sure you initialize `opam` before starting:
 opam init --bare
 ```
 
+To setup the OCaml development tools like ocaml-lsp-server and merlin, refer to
+[the official documentation](https://ocaml.org/docs/up-and-running#setting-up-development-tools).
+
 #### Setup Docker CE on Ubuntu
 
 - [Ubuntu Setup Instructions](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-
-### Customizing your dev environment for autocomplete/merlin
-
-[dev-env]: #dev-env
-
-- If you use vim, add this snippet in your vimrc to use merlin. (REMEMBER to change the HOME directory to match yours)
-
-```bash
-let s:ocamlmerlin="/Users/USERNAME/.opam/4.07/share/merlin"
-execute "set rtp+=".s:ocamlmerlin."/vim"
-execute "set rtp+=".s:ocamlmerlin."/vimbufsync"
-let g:syntastic_ocaml_checkers=['merlin']
-```
-
-- In your home directory `opam init`
-- In this shell, `eval $(opam config env)`
-- Now `/usr/bin/opam install merlin ocp-indent core async ppx_jane ppx_deriving` (everything we depend on, that you want autocompletes for) for doc reasons
-- Make sure you have `au FileType ocaml set omnifunc=merlin#Complete` in your vimrc
-- Install an auto-completer (such as YouCompleteMe) and a syntastic (such syntastic or ALE)
-- If you use VSCode, then use [OCaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)
-
-- If you use emacs, besides the `opam` packages mentioned above, also install `tuareg`, and add the following to your .emacs file:
-
-```lisp
-(let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
-  (when (and opam-share (file-directory-p opam-share))
-    ;; Register Merlin
-    (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
-    (load "tuareg-site-file")
-    (autoload 'merlin-mode "merlin" nil t nil)
-    ;; Automatically start it in OCaml buffers
-    (add-hook 'tuareg-mode-hook 'merlin-mode t)
-    (add-hook 'caml-mode-hook 'merlin-mode t)))
-```
-
-Emacs has a built-in autocomplete, via `M-x completion-at-point`, or simply `M-tab`. There are other
-Emacs autocompletion packages; see [Emacs from scratch](https://github.com/ocaml/merlin/wiki/emacs-from-scratch).
-
-- If you use VSCode:
-  - Make sure to be in the right switch (mina)
-  - Install OCaml Platform extension
-  - You might get a prompt to install `ocaml-lsp-server` as well in the Sandbox
-  - You might get a prompt to install `ocamlformat-rpc` as well in the Sandbox
-  - Type "shell command: install code command in PATH"
-  - Close all windows and instances of VSCode
-  - From terminal, in your mina directory, run `code .`
-  - Run `dune build` in the terminal inside VSCode
-  - Now Merlin should work inside VSCode.
 
 ## Running a node
 
