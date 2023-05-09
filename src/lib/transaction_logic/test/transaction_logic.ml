@@ -12,6 +12,17 @@ let trials = 100
 
 let balance_to_fee = Fn.compose Amount.to_fee Balance.to_amount
 
+let global_slot_gen_excl low high =
+  let open Global_slot in
+  let succ a = if a < max_value then Some (add a (of_int 1)) else None in
+  let pred a = sub a (of_int 1) in
+  let l = Option.map ~f:(gen_incl zero) (pred low) in
+  let h = Option.map ~f:(fun x -> gen_incl x max_value) (succ high) in
+  Quickcheck.Generator.union (List.filter_map ~f:Fn.id [l; h])
+
+let gen_valid_while =
+  Zkapp_precondition.Closed_interval.gen Global_slot.gen Global_slot.compare
+
 (* This module tests the "pure" transaction logic implemented in this library.
    By "pure" we mean that ZK SNARKs aren't used for verification, instead all
    signatures and proofs are assumed to be valid. These verification details
@@ -841,6 +852,55 @@ let%test_module "Test transaction logic." =
                       ] )
                  && Predicates.verify_balances_unchanged ~ledger ~txn accounts )
             )
+            (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
+
+    let%test_unit "Update preconditions can block update application." =
+      Quickcheck.test ~trials
+        (let open Quickcheck.Generator.Let_syntax in
+         let%bind sender = Test_account.gen_constrained_balance ~min:Balance.(of_mina_int_exn 5) () in
+         let%bind receiver = Test_account.gen_empty in
+         let max_fee =
+           let open Fee in
+           balance_to_fee sender.balance - one
+           |> Option.value ~default:one
+         in
+         let%bind fee = Fee.(gen_incl one max_fee) in
+         let balance_after_fee =
+           let open Balance in
+           sender.balance - Amount.of_fee fee
+           |> Option.value_map ~default:Amount.zero ~f:to_amount
+         in
+         let%bind amount = Amount.(gen_incl one balance_after_fee) in
+         let%bind valid_while_intv = gen_valid_while in
+         let%map global_slot = global_slot_gen_excl
+                                 valid_while_intv.lower
+                                 valid_while_intv.upper
+         in
+         let preconditions =
+           let open Account_update in
+           let open Preconditions in
+           { network = Zkapp_precondition.Protocol_state.accept
+           ; account = Account_precondition.Accept
+           ; valid_while = Check valid_while_intv
+           }
+         in
+         let txn =
+           Simple_txn.make
+             ~preconditions
+             ~sender:sender.pk
+             ~receiver:receiver.pk
+             amount
+         in
+         (global_slot, sender.pk, fee, [sender; receiver], [(txn :> transaction)]))
+        ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
+          [%test_pred: Zk_cmd_result.t Or_error.t]
+            (Predicates.pure ~f:(fun (txn, ledger) ->
+                 Transaction_status.equal txn.command.status
+                   (Failed [ []
+                           ; [ Valid_while_precondition_unsatisfied ]
+                           ; [ Valid_while_precondition_unsatisfied ]
+                   ])
+                 && Predicates.verify_balances_unchanged ~ledger ~txn accounts ) )
             (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
   end )
 
