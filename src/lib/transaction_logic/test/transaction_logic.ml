@@ -20,6 +20,15 @@ let global_slot_gen_excl low high =
   let h = Option.map ~f:(fun x -> gen_incl x max_value) (succ high) in
   Quickcheck.Generator.union (List.filter_map ~f:Fn.id [l; h])
 
+let find_account ~ledger account =
+  let open Option.Let_syntax in
+  let account_id = Test_account.account_id account in
+  let%bind loc = Ledger.location_of_account ledger account_id in
+  Ledger.get ledger loc
+
+let find_account_exn ~ledger account =
+  Option.value_exn (find_account ~ledger account)
+
 let gen_valid_while =
   Zkapp_precondition.Closed_interval.gen Global_slot.gen Global_slot.compare
 
@@ -902,5 +911,52 @@ let%test_module "Test transaction logic." =
                    ])
                  && Predicates.verify_balances_unchanged ~ledger ~txn accounts ) )
             (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
+
+    let%test_unit "Nonces are being incremented once for each account update." =
+      Quickcheck.test ~trials
+        (let open Quickcheck in
+         let open Generator.Let_syntax in
+         let%bind sender = Test_account.gen_constrained_balance
+                             ~min:(Balance.of_mina_int_exn 2) ()
+         in
+         let%bind receivers = Generator.list_with_length 2 Test_account.gen_empty in
+         let max_fee =
+           Balance.(sender.balance - Amount.of_mina_int_exn 1)
+           |> Option.value_map ~f:balance_to_fee ~default:Fee.zero
+         in
+         let%bind fee = Fee.(gen_incl one max_fee) in
+         let max_amount =
+           let balance_after_fee =
+             Balance.(sender.balance - Amount.of_fee fee)
+             |> Option.value ~default:Balance.zero
+           in
+           UInt64.Infix.(Balance.to_uint64 balance_after_fee / UInt64.of_int 2)
+           |> Amount.of_uint64
+         in
+         let%bind amount = Amount.(gen_incl one max_amount) in
+         let receiver n = (List.nth_exn receivers n).pk in
+         let txns =
+           [ Simple_txn.make ~sender:sender.pk ~receiver:(receiver 0) amount
+           ; Simple_txn.make ~sender:sender.pk ~receiver:(receiver 1) amount             
+           ]
+         in
+         let%map global_slot = Global_slot.gen in
+         (global_slot, sender.pk, fee, sender :: receivers, (txns :> transaction list)))
+        ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
+          [%test_pred: Zk_cmd_result.t Or_error.t]
+            (Predicates.pure ~f:(fun (txn, ledger) ->
+                 Transaction_status.equal txn.command.status Applied
+                 && match accounts with
+                    | [] -> false
+                    | sender :: receivers ->
+                       let open Account.Nonce in
+                       let sender' = find_account_exn ~ledger sender in
+                       (* There's a fee payment and 2 deductions from the account,
+                          which amounts to 3 nonce increments. *)
+                       equal (add sender.nonce (of_int 3)) sender'.nonce
+                       && List.for_all receivers ~f:(fun receiver ->
+                           let receiver' = find_account_exn ~ledger receiver in
+                           equal (succ receiver.nonce) receiver'.nonce ) ) )
+            (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns))
   end )
 
