@@ -17,3 +17,6 @@ chmod +rwx test_executive.exe
 
 cp _build/default/src/app/logproc/logproc.exe .
 chmod +rwx logproc.exe
+
+cp _build/default/src/app/test_reporter/test_reporter.exe .
+chmod +rwx test_reporter.exe
