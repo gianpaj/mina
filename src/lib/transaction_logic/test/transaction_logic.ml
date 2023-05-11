@@ -18,7 +18,7 @@ let global_slot_gen_excl low high =
   let pred a = sub a (of_int 1) in
   let l = Option.map ~f:(gen_incl zero) (pred low) in
   let h = Option.map ~f:(fun x -> gen_incl x max_value) (succ high) in
-  Quickcheck.Generator.union (List.filter_map ~f:Fn.id [l; h])
+  Quickcheck.Generator.union (List.filter_map ~f:Fn.id [ l; h ])
 
 let find_account ~ledger account =
   let open Option.Let_syntax in
@@ -55,9 +55,9 @@ let%test_module "Test transaction logic." =
       let%bind ledger = test_ledger accounts in
       let%map txn, _ =
         Transaction_logic.apply_zkapp_command_unchecked ~constraint_constants
-          ~state_view:{ protocol_state with global_slot_since_genesis = global_slot }
-          ~global_slot
-          ledger cmd
+          ~state_view:
+            { protocol_state with global_slot_since_genesis = global_slot }
+          ~global_slot ledger cmd
       in
       (txn, ledger)
 
@@ -78,7 +78,9 @@ let%test_module "Test transaction logic." =
         let%bind fee_payer =
           Generator.of_list @@ List.map ~f:snd account_pairs
         in
-        let%bind fee = Fee.(gen_incl zero @@ balance_to_fee fee_payer.balance) in
+        let%bind fee =
+          Fee.(gen_incl zero @@ balance_to_fee fee_payer.balance)
+        in
         let%map global_slot = Global_slot.gen in
         (global_slot, fee_payer.pk, fee, accounts, (txns :> transaction list)))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
@@ -224,7 +226,11 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl zero (balance_to_fee delegate.balance)) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, delegate.pk, fee, [ delegator; delegate ], [ (txn :> transaction) ]))
+        ( global_slot
+        , delegate.pk
+        , fee
+        , [ delegator; delegate ]
+        , [ (txn :> transaction) ] ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -263,7 +269,12 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl zero (balance_to_fee account.balance)) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, account.pk, fee, [ account ], [ (txn :> transaction) ], uri))
+        ( global_slot
+        , account.pk
+        , fee
+        , [ account ]
+        , [ (txn :> transaction) ]
+        , uri ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns, uri) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -324,7 +335,12 @@ let%test_module "Test transaction logic." =
           |> Option.value ~default:Fee.zero
         in
         let%map fee = Fee.(gen_incl zero max_fee) in
-        (global_slot, account.pk, fee, [ account ], [ (txn :> transaction) ], timing))
+        ( global_slot
+        , account.pk
+        , fee
+        , [ account ]
+        , [ (txn :> transaction) ]
+        , timing ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns, timing) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -348,8 +364,7 @@ let%test_module "Test transaction logic." =
         let gen_timing =
           let%map t = Account.gen_timing Balance.max_int in
           let minimum_balance =
-            Account.min_balance_at_slot
-              ~global_slot
+            Account.min_balance_at_slot ~global_slot
               ~initial_minimum_balance:t.initial_minimum_balance
               ~vesting_period:t.vesting_period
               ~vesting_increment:t.vesting_increment ~cliff_time:t.cliff_time
@@ -379,7 +394,11 @@ let%test_module "Test transaction logic." =
           Alter_account.make ~account:account.pk
             { Account_update.Update.noop with timing = Set timing_info }
         in
-        (global_slot, account.pk, Fee.zero, [ account ], [ (txn :> transaction) ]))
+        ( global_slot
+        , account.pk
+        , Fee.zero
+        , [ account ]
+        , [ (txn :> transaction) ] ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, _ledger) ->
@@ -398,7 +417,12 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl zero (balance_to_fee account.balance)) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, account.pk, fee, [ account ], [ (txn :> transaction) ], state_hash))
+        ( global_slot
+        , account.pk
+        , fee
+        , [ account ]
+        , [ (txn :> transaction) ]
+        , state_hash ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns, voting_choice) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -425,7 +449,12 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl zero (balance_to_fee account.balance)) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, account.pk, fee, [ account ], [ (txn :> transaction) ], perms))
+        ( global_slot
+        , account.pk
+        , fee
+        , [ account ]
+        , [ (txn :> transaction) ]
+        , perms ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns, perms) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -463,7 +492,12 @@ let%test_module "Test transaction logic." =
           |> Zkapp_state.V.of_list_exn
         in
         let%map global_slot = Global_slot.gen in
-        (global_slot, account.pk, fee, [ account ], [ (txn :> transaction) ], zk_app_state))
+        ( global_slot
+        , account.pk
+        , fee
+        , [ account ]
+        , [ (txn :> transaction) ]
+        , zk_app_state ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns, zkapp_state) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -602,7 +636,11 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl min_fee max_int) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, delegator.pk, fee, [ delegator; delegate ], [ (txn :> transaction) ]))
+        ( global_slot
+        , delegator.pk
+        , fee
+        , [ delegator; delegate ]
+        , [ (txn :> transaction) ] ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (function
@@ -633,7 +671,11 @@ let%test_module "Test transaction logic." =
           Simple_txn.make ~sender:account.pk ~receiver:fee_payer.pk amount
         in
         let%map global_slot = Global_slot.gen in
-        (global_slot, fee_payer.pk, fee, [ fee_payer; account ], [ (txn :> transaction) ]))
+        ( global_slot
+        , fee_payer.pk
+        , fee
+        , [ fee_payer; account ]
+        , [ (txn :> transaction) ] ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (function
@@ -676,7 +718,11 @@ let%test_module "Test transaction logic." =
         in
         let%bind fee = Fee.(gen_incl zero max_fee) in
         let%map global_slot = Global_slot.gen in
-        (global_slot, sender.pk, fee, sender :: receivers, (txns :> transaction list)))
+        ( global_slot
+        , sender.pk
+        , fee
+        , sender :: receivers
+        , (txns :> transaction list) ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
@@ -714,7 +760,11 @@ let%test_module "Test transaction logic." =
               ] )
         in
         let%map global_slot = Global_slot.gen in
-        (global_slot, alice.pk, Fee.zero, [ alice; bob ], (txns :> transaction list)))
+        ( global_slot
+        , alice.pk
+        , Fee.zero
+        , [ alice; bob ]
+        , (txns :> transaction list) ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, _ledger) ->
@@ -866,97 +916,172 @@ let%test_module "Test transaction logic." =
     let%test_unit "Update preconditions can block update application." =
       Quickcheck.test ~trials
         (let open Quickcheck.Generator.Let_syntax in
-         let%bind sender = Test_account.gen_constrained_balance ~min:Balance.(of_mina_int_exn 5) () in
-         let%bind receiver = Test_account.gen_empty in
-         let max_fee =
-           let open Fee in
-           balance_to_fee sender.balance - one
-           |> Option.value ~default:one
-         in
-         let%bind fee = Fee.(gen_incl one max_fee) in
-         let balance_after_fee =
-           let open Balance in
-           sender.balance - Amount.of_fee fee
-           |> Option.value_map ~default:Amount.zero ~f:to_amount
-         in
-         let%bind amount = Amount.(gen_incl one balance_after_fee) in
-         let%bind valid_while_intv = gen_valid_while in
-         let%map global_slot = global_slot_gen_excl
-                                 valid_while_intv.lower
-                                 valid_while_intv.upper
-         in
-         let preconditions =
-           let open Account_update in
-           let open Preconditions in
-           { network = Zkapp_precondition.Protocol_state.accept
-           ; account = Account_precondition.Accept
-           ; valid_while = Check valid_while_intv
-           }
-         in
-         let txn =
-           Simple_txn.make
-             ~preconditions
-             ~sender:sender.pk
-             ~receiver:receiver.pk
-             amount
-         in
-         (global_slot, sender.pk, fee, [sender; receiver], [(txn :> transaction)]))
+        let%bind sender =
+          Test_account.gen_constrained_balance
+            ~min:Balance.(of_mina_int_exn 5)
+            ()
+        in
+        let%bind receiver = Test_account.gen_empty in
+        let max_fee =
+          let open Fee in
+          balance_to_fee sender.balance - one |> Option.value ~default:one
+        in
+        let%bind fee = Fee.(gen_incl one max_fee) in
+        let balance_after_fee =
+          let open Balance in
+          sender.balance - Amount.of_fee fee
+          |> Option.value_map ~default:Amount.zero ~f:to_amount
+        in
+        let%bind amount = Amount.(gen_incl one balance_after_fee) in
+        let%bind valid_while_intv = gen_valid_while in
+        let%map global_slot =
+          global_slot_gen_excl valid_while_intv.lower valid_while_intv.upper
+        in
+        let preconditions =
+          let open Account_update in
+          let open Preconditions in
+          { network = Zkapp_precondition.Protocol_state.accept
+          ; account = Account_precondition.Accept
+          ; valid_while = Check valid_while_intv
+          }
+        in
+        let txn =
+          Simple_txn.make ~preconditions ~sender:sender.pk ~receiver:receiver.pk
+            amount
+        in
+        ( global_slot
+        , sender.pk
+        , fee
+        , [ sender; receiver ]
+        , [ (txn :> transaction) ] ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
                  Transaction_status.equal txn.command.status
-                   (Failed [ []
-                           ; [ Valid_while_precondition_unsatisfied ]
-                           ; [ Valid_while_precondition_unsatisfied ]
-                   ])
-                 && Predicates.verify_balances_unchanged ~ledger ~txn accounts ) )
+                   (Failed
+                      [ []
+                      ; [ Valid_while_precondition_unsatisfied ]
+                      ; [ Valid_while_precondition_unsatisfied ]
+                      ] )
+                 && Predicates.verify_balances_unchanged ~ledger ~txn accounts )
+            )
+            (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
+
+    let%test_unit "Account preconditions are checked against the local state." =
+      Quickcheck.test ~trials
+        (let open Quickcheck.Generator.Let_syntax in
+        let%bind sender =
+          Test_account.gen_constrained_balance
+            ~min:Balance.(of_mina_int_exn 5)
+            ()
+        in
+        let%bind receiver = Test_account.gen_empty in
+        let max_fee =
+          let open Fee in
+          balance_to_fee sender.balance - one |> Option.value ~default:one
+        in
+        let%bind fee = Fee.(gen_incl one max_fee) in
+        let balance_after_fee =
+          let open Balance in
+          sender.balance - Amount.of_fee fee |> Option.value ~default:zero
+        in
+        let%bind amount =
+          Amount.(gen_incl one (Balance.to_amount balance_after_fee))
+        in
+        let%map global_slot = Global_slot.gen in
+        let recv_balance = Balance.of_uint64 @@ Amount.to_uint64 amount in
+        (* The precondition checks that money has been transferred to the receiver,
+           which is already the case in the intermediate (local) state between
+           the transfer and the delegation update. *)
+        let preconditions =
+          let open Account_update in
+          let open Preconditions in
+          { network = Zkapp_precondition.Protocol_state.accept
+          ; account =
+              Full
+                { Zkapp_precondition.Account.accept with
+                  balance = Check { lower = recv_balance; upper = recv_balance }
+                }
+          ; valid_while = Ignore
+          }
+        in
+        let txns =
+          [ ( Single.make ~account:sender.pk
+                Amount.Signed.(negate @@ of_unsigned amount)
+              :> transaction )
+          ; ( Single.make ~account:receiver.pk Amount.Signed.(of_unsigned amount)
+              :> transaction )
+          ; ( Alter_account.make ~preconditions ~account:receiver.pk
+                { Account_update.Update.noop with delegate = Set sender.pk }
+              :> transaction )
+          ]
+        in
+        ( global_slot
+        , sender.pk
+        , fee
+        , [ sender; receiver ]
+        , (txns :> transaction list) ))
+        ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
+          [%test_pred: Zk_cmd_result.t Or_error.t]
+            (Predicates.pure ~f:(fun (txn, ledger) ->
+                 Transaction_status.equal txn.command.status Applied
+                 && Predicates.verify_balance_changes ~ledger ~txn accounts ) )
             (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
 
     let%test_unit "Nonces are being incremented once for each account update." =
       Quickcheck.test ~trials
         (let open Quickcheck in
-         let open Generator.Let_syntax in
-         let%bind sender = Test_account.gen_constrained_balance
-                             ~min:(Balance.of_mina_int_exn 2) ()
-         in
-         let%bind receivers = Generator.list_with_length 2 Test_account.gen_empty in
-         let max_fee =
-           Balance.(sender.balance - Amount.of_mina_int_exn 1)
-           |> Option.value_map ~f:balance_to_fee ~default:Fee.zero
-         in
-         let%bind fee = Fee.(gen_incl one max_fee) in
-         let max_amount =
-           let balance_after_fee =
-             Balance.(sender.balance - Amount.of_fee fee)
-             |> Option.value ~default:Balance.zero
-           in
-           UInt64.Infix.(Balance.to_uint64 balance_after_fee / UInt64.of_int 2)
-           |> Amount.of_uint64
-         in
-         let%bind amount = Amount.(gen_incl one max_amount) in
-         let receiver n = (List.nth_exn receivers n).pk in
-         let txns =
-           [ Simple_txn.make ~sender:sender.pk ~receiver:(receiver 0) amount
-           ; Simple_txn.make ~sender:sender.pk ~receiver:(receiver 1) amount             
-           ]
-         in
-         let%map global_slot = Global_slot.gen in
-         (global_slot, sender.pk, fee, sender :: receivers, (txns :> transaction list)))
+        let open Generator.Let_syntax in
+        let%bind sender =
+          Test_account.gen_constrained_balance
+            ~min:(Balance.of_mina_int_exn 2)
+            ()
+        in
+        let%bind receivers =
+          Generator.list_with_length 2 Test_account.gen_empty
+        in
+        let max_fee =
+          Balance.(sender.balance - Amount.of_mina_int_exn 1)
+          |> Option.value_map ~f:balance_to_fee ~default:Fee.zero
+        in
+        let%bind fee = Fee.(gen_incl one max_fee) in
+        let max_amount =
+          let balance_after_fee =
+            Balance.(sender.balance - Amount.of_fee fee)
+            |> Option.value ~default:Balance.zero
+          in
+          UInt64.Infix.(Balance.to_uint64 balance_after_fee / UInt64.of_int 2)
+          |> Amount.of_uint64
+        in
+        let%bind amount = Amount.(gen_incl one max_amount) in
+        let receiver n = (List.nth_exn receivers n).pk in
+        let txns =
+          [ Simple_txn.make ~sender:sender.pk ~receiver:(receiver 0) amount
+          ; Simple_txn.make ~sender:sender.pk ~receiver:(receiver 1) amount
+          ]
+        in
+        let%map global_slot = Global_slot.gen in
+        ( global_slot
+        , sender.pk
+        , fee
+        , sender :: receivers
+        , (txns :> transaction list) ))
         ~f:(fun (global_slot, fee_payer, fee, accounts, txns) ->
           [%test_pred: Zk_cmd_result.t Or_error.t]
             (Predicates.pure ~f:(fun (txn, ledger) ->
                  Transaction_status.equal txn.command.status Applied
-                 && match accounts with
-                    | [] -> false
-                    | sender :: receivers ->
-                       let open Account.Nonce in
-                       let sender' = find_account_exn ~ledger sender in
-                       (* There's a fee payment and 2 deductions from the account,
-                          which amounts to 3 nonce increments. *)
-                       equal (add sender.nonce (of_int 3)) sender'.nonce
-                       && List.for_all receivers ~f:(fun receiver ->
-                           let receiver' = find_account_exn ~ledger receiver in
-                           equal (succ receiver.nonce) receiver'.nonce ) ) )
-            (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns))
+                 &&
+                 match accounts with
+                 | [] ->
+                     false
+                 | sender :: receivers ->
+                     let open Account.Nonce in
+                     let sender' = find_account_exn ~ledger sender in
+                     (* There's a fee payment and 2 deductions from the account,
+                        which amounts to 3 nonce increments. *)
+                     equal (add sender.nonce (of_int 3)) sender'.nonce
+                     && List.for_all receivers ~f:(fun receiver ->
+                            let receiver' = find_account_exn ~ledger receiver in
+                            equal (succ receiver.nonce) receiver'.nonce ) ) )
+            (run_zkapp_cmd ~global_slot ~fee_payer ~fee ~accounts txns) )
   end )
-
